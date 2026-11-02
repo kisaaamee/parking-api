@@ -1,0 +1,70 @@
+name: Parking API checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build and test on Java 21
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the project
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build, run tests and demonstrate the HTTP API
+        id: verify
+        run: bash ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Save test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Save the application JAR
+        uses: actions/upload-artifact@v7
+        with:
+          name: parking-api
+          path: target/parking-api-0.0.1-SNAPSHOT.jar
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Write the run summary
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome || 'not run' }}
+        run: |
+          {
+            echo '## Parking API checks'
+            echo ''
+            echo "Build and tests: **$VERIFY_OUTCOME**"
+            echo ''
+            echo 'Runtime: Java 21 (Temurin).'
+            echo ''
+            echo 'The test suite includes a running HTTP server demonstration:'
+            echo '- availability, entry and exit billing;'
+            echo '- duplicate registration, full parking and invalid request errors;'
+            echo '- confirmation that exit frees the space.'
+            echo ''
+            echo 'Open the build step log to see HTTP requests and JSON responses.'
+            echo 'JUnit reports are available in the test-reports artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"

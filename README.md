@@ -8,8 +8,27 @@ The backend core is implemented: vehicle types, charge calculation, array-based
 parking storage, entry and exit operations, specific business exceptions, and
 synchronization for concurrent access. The three HTTP endpoints, request
 validation and centralized JSON errors are implemented and tested. Spring
-configuration supplies the service, calculator and UTC clock. React UI, Docker
-packaging and CI are planned and are not implemented yet.
+configuration supplies the service, calculator and UTC clock. GitHub Actions is
+configured to build and test the application on Java 21, including an HTTP
+demonstration using a real server. Test reports and the application JAR are saved
+as workflow artifacts.
+
+## Run from GitHub
+
+The workflow runs automatically on pushes and pull requests. To start it manually:
+
+1. Push the project, including `.github/workflows/verify.yml`, to the repository's
+   default branch.
+2. Open **Actions** and select **Parking API checks**.
+3. Choose **Run workflow** and start the run.
+4. Open **Build and test on Java 21** to inspect the build and test output.
+5. Find `HTTP DEMO` in the build step log to see actual HTTP requests and JSON
+   responses. Download `test-reports` for JUnit reports, or `parking-api` for the JAR.
+
+Manual runs require write access to the repository. Reviewers with read access
+can inspect the results of completed runs. No local installation is needed to
+view the workflow results. The workflow starts a temporary server for its tests;
+it does not publish a permanently running API.
 
 ## Run the checks
 
@@ -30,8 +49,8 @@ Windows PowerShell:
 .\mvnw.cmd clean verify
 ```
 
-The suite currently contains 73 tests. It has been verified on JDK 24 with
-compilation targeting Java 21; execution on JDK 21 remains to be verified.
+The suite currently contains 74 tests. The full build, tests and live HTTP
+demonstration have been verified on Temurin JDK 21.0.13.
 
 ## Run the API
 
@@ -155,3 +174,9 @@ pass through routing, JSON conversion, validation, controllers, the real parking
 service and error handlers without opening a network port. Each test receives
 a fresh application context and a controllable clock, so no parking data or
 test time leaks between cases. Tests use real collaborators rather than Mockito.
+
+`ParkingHttpIntegrationTest` starts the embedded server on a random port and uses
+Java's HTTP client to demonstrate availability, entry, billing and business
+errors. Its test clock advances instantly by 7 minutes 20 seconds, producing a
+repeatable GBP 2.60 bill for a medium car. Requests and responses are printed in
+the test output, making the scenario visible in GitHub Actions.
