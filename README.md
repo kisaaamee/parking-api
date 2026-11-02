@@ -15,6 +15,8 @@ as workflow artifacts.
 
 ## Run from GitHub
 
+[Open Parking API checks on GitHub](https://github.com/kisaaamee/parking-api/actions/workflows/verify.yml).
+
 The workflow runs automatically on pushes and pull requests. To start it manually:
 
 1. Push the project, including `.github/workflows/verify.yml`, to the repository's
@@ -136,7 +138,21 @@ errors additionally contain an `errors` array with `field` and `message` entries
 For example, a medium car parked for 7 minutes 20 seconds costs
 `8 * 20 + 1 * 100 = 260` pence, or GBP 2.60.
 
-## Design decisions agreed so far
+## Architecture
+
+Requests pass through `ParkingController` and validated request DTOs to
+`ParkingService`. The service owns `ParkingState`, whose private array stores
+active parking sessions. `ParkingChargeCalculator` calculates charges without
+changing parking state. Response DTOs define the public JSON contract, and
+`GlobalExceptionHandler` translates failures into HTTP errors.
+
+One shared service lock protects each complete entry, exit or status operation.
+The service returns immutable records and never exposes its mutable array.
+Allocation, registration lookup and occupancy counting take O(capacity) time.
+This keeps one source of truth for a small, fixed-capacity car park. A larger
+system could introduce indexes after measuring its workload.
+
+## Assumptions and design decisions
 
 - One vehicle occupies one space; vehicle size only affects the tariff.
 - Spaces are held in an array inside `ParkingState`. The array is not exposed.
